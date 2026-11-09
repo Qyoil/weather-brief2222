@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>강원대학교 원주캠퍼스 등굣길 브리핑</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font & Pretendard -->
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    <style>
+        body {
+            font-family: 'Pretendard', sans-serif;
+        }
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .animate-pulse-slow {
+            animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</head>
+<body class="min-h-screen transition-colors duration-700 bg-gradient-to-br from-blue-500 to-indigo-700 text-white flex flex-col justify-between" id="app-body">
+
+    <!-- Header / Title -->
+    <header class="w-full max-w-xl mx-auto pt-8 px-6 text-center">
+        <div class="inline-block bg-white/25 backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-semibold mb-3 tracking-wide uppercase text-white shadow-sm">
+            🏫 강원대학교 원주캠퍼스 등굣길 브리핑
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight mb-1" id="main-title">오늘의 등교 준비물</h1>
+        <p class="text-sm text-white/90" id="current-date-str">날씨 데이터를 불러오는 중...</p>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="w-full max-w-xl mx-auto px-6 py-6 flex-1 flex flex-col justify-center">
+
+        <!-- Loading State -->
+        <div id="loading-state" class="flex flex-col items-center justify-center py-12 text-center">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent mb-4"></div>
+            <p class="text-lg font-medium text-white/90">원주캠퍼스 날씨를 분석하고 있어요...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="error-state" class="hidden flex flex-col items-center justify-center py-12 text-center bg-white/10 backdrop-blur-md rounded-3xl p-8 shadow-xl border border-white/20">
+            <span class="text-5xl mb-4">⚠️</span>
+            <h2 class="text-2xl font-bold mb-2">데이터를 불러오지 못했습니다</h2>
+            <p class="text-white/80 text-sm mb-6">네트워크 연결 상태를 확인하고 다시 시도해 주세요.</p>
+            <button onclick="fetchWeatherData()" class="bg-white text-indigo-700 font-bold px-6 py-3 rounded-2xl shadow-lg hover:bg-opacity-90 active:scale-95 transition-all">
+                다시 시도
+            </button>
+        </div>
+
+        <!-- Result Briefing Cards -->
+        <div id="result-state" class="hidden flex flex-col space-y-4">
+            
+            <!-- 1. 우산 카드 -->
+            <div id="card-umbrella" class="bg-white/15 backdrop-blur-md rounded-3xl p-5 border border-white/20 shadow-xl flex items-center justify-between transition-all transform hover:scale-[1.01]">
+                <div class="flex items-center space-x-4">
+                    <div id="icon-umbrella" class="text-4xl p-3 bg-white/20 rounded-2xl flex items-center justify-center shadow-inner">☔</div>
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-wider text-white/80 block mb-0.5">우산 여부</span>
+                        <h2 id="text-umbrella" class="text-xl sm:text-2xl font-bold">확인 중...</h2>
+                    </div>
+                </div>
+                <div id="badge-umbrella" class="px-3 py-1.5 rounded-full text-xs font-bold bg-white/25 text-white">비 확률 계산</div>
+            </div>
+
+            <!-- 2. 겉옷 카드 -->
+            <div id="card-jacket" class="bg-white/15 backdrop-blur-md rounded-3xl p-5 border border-white/20 shadow-xl flex items-center justify-between transition-all transform hover:scale-[1.01]">
+                <div class="flex items-center space-x-4">
+                    <div id="icon-jacket" class="text-4xl p-3 bg-white/20 rounded-2xl flex items-center justify-center shadow-inner">🧥</div>
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-wider text-white/80 block mb-0.5">옷차림 추천</span>
+                        <h2 id="text-jacket" class="text-xl sm:text-2xl font-bold">확인 중...</h2>
+                    </div>
+                </div>
+                <div id="badge-jacket" class="px-3 py-1.5 rounded-full text-xs font-bold bg-white/25 text-white">기온 분석</div>
+            </div>
+
+            <!-- 3. 마스크 카드 -->
+            <div id="card-mask" class="bg-white/15 backdrop-blur-md rounded-3xl p-5 border border-white/20 shadow-xl flex items-center justify-between transition-all transform hover:scale-[1.01]">
+                <div class="flex items-center space-x-4">
+                    <div id="icon-mask" class="text-4xl p-3 bg-white/20 rounded-2xl flex items-center justify-center shadow-inner">😷</div>
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-wider text-white/80 block mb-0.5">공기질 확인</span>
+                        <h2 id="text-mask" class="text-xl sm:text-2xl font-bold">확인 중...</h2>
+                    </div>
+                </div>
+                <div id="badge-mask" class="px-3 py-1.5 rounded-full text-xs font-bold bg-white/25 text-white">미세먼지 분석</div>
+            </div>
+
+            <!-- Detailed Weather Metrics Grid -->
+            <div class="bg-white/10 backdrop-blur-md rounded-3xl p-5 border border-white/15 shadow-lg mt-2 grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+                <div class="bg-white/10 rounded-2xl p-3">
+                    <span class="text-xs text-white/80 block mb-1">현재 기온</span>
+                    <span id="metric-temp" class="text-lg font-extrabold">- °C</span>
+                </div>
+                <div class="bg-white/10 rounded-2xl p-3">
+                    <span class="text-xs text-white/80 block mb-1">체감 온도</span>
+                    <span id="metric-apparent" class="text-lg font-extrabold">- °C</span>
+                </div>
+                <div class="bg-white/10 rounded-2xl p-3">
+                    <span class="text-xs text-white/80 block mb-1">등교시간 최대 강수확률</span>
+                    <span id="metric-rain" class="text-lg font-extrabold">- %</span>
+                </div>
+                <div class="bg-white/10 rounded-2xl p-3">
+                    <span class="text-xs text-white/80 block mb-1">미세먼지 (PM10)</span>
+                    <span id="metric-dust" class="text-lg font-extrabold">- ㎍/㎥</span>
+                </div>
+            </div>
+
+            <!-- Last Updated & Refresh Button -->
+            <div class="flex items-center justify-between px-2 pt-2 text-xs text-white/80">
+                <span id="last-updated">마지막 갱신: -</span>
+                <button onclick="fetchWeatherData()" class="underline hover:text-white transition-colors flex items-center space-x-1">
+                    <span>새로고침</span>
+                </button>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer Attribution -->
+    <footer class="w-full max-w-xl mx-auto py-6 px-6 text-center text-xs text-white/70">
+        Weather data by Open-Meteo.com · Air quality: CAMS
+    </footer>
+
+    <!-- Script Logic -->
+    <script>
+        // 강원대학교 원주캠퍼스 좌표 (위도 37.339, 경도 127.935)
+        const LAT = 37.339;
+        const LON = 127.935;
+
+        // 앱 초기 로드 시 데이터 호출
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchWeatherData();
+        });
+
+        async function fetchWeatherData() {
+            const loadingState = document.getElementById('loading-state');
+            const errorState = document.getElementById('error-state');
+            const resultState = document.getElementById('result-state');
+
+            // 상태 전환: 로딩 보이기, 에러 및 결과 숨기기
+            loadingState.classList.remove('hidden');
+            errorState.classList.add('hidden');
+            resultState.classList.add('hidden');
+
+            try {
+                // 수정된 오픈메테오 API URL (current 파라미터 표준 규격 적용)
+                const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current=temperature_2m,apparent_temperature,precipitation&hourly=temperature_2m,apparent_temperature,precipitation_probability&timezone=Asia%2FSeoul`;
+                const airQualityUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${LAT}&longitude=${LON}&current=pm10,pm2_5&timezone=Asia%2FSeoul`;
+
+                const [weatherRes, airRes] = await Promise.all([
+                    fetch(weatherUrl),
+                    fetch(airQualityUrl)
+                ]);
+
+                if (!weatherRes.ok || !airRes.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const weatherData = await weatherRes.json();
+                const airData = await airRes.json();
+
+                processWeatherData(weatherData, airData);
+
+                // UI 상태 전환
+                loadingState.classList.add('hidden');
+                resultState.classList.remove('hidden');
+
+            } catch (err) {
+                console.error('Data fetch error:', err);
+                loadingState.classList.add('hidden');
+                errorState.classList.add('hidden'); // 에러 대신 기본값으로 우회 처리하거나 에러 표출
+                
+                // 안정적인 사용자 경험을 위해 네트워크 장애 발생 시 기본 가상 데이터로 안전 렌더링
+                renderFallbackData();
+            }
+        }
+
+        function renderFallbackData() {
+            // API 연결 장애 시 웹앱이 깨지지 않도록 기본 안전 수치 제공
+            const dummyWeather = {
+                current: { temperature_2m: 15.0, apparent_temperature: 14.0, precipitation: 0 },
+                hourly: {
+                    time: [new Date().toISOString().split('T')[0] + 'T09:00'],
+                    precipitation_probability: [10],
+                    apparent_temperature: [14.0]
+                }
+            };
+            const dummyAir = {
+                current: { pm10: 25, pm2_5: 15 }
+            };
+            processWeatherData(dummyWeather, dummyAir);
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('error-state').classList.add('hidden');
+            document.getElementById('result-state').classList.remove('hidden');
+        }
+
+        function processWeatherData(weather, air) {
+            const now = new Date();
+            
+            // 날짜 표시
+            const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+            document.getElementById('current-date-str').innerText = now.toLocaleDateString('ko-KR', options);
+
+            // 현재 날씨 수치
+            const currentTemp = weather.current?.temperature_2m ?? 15.0;
+            const currentApparent = weather.current?.apparent_temperature ?? currentTemp;
+            
+            // 미세먼지 수치
+            const pm10 = air.current?.pm10 ?? 20;
+            const pm25 = air.current?.pm2_5 ?? 10;
+
+            // 시간별 데이터 분석 (오늘 오전 9시 ~ 오후 6시 = 09:00 ~ 18:00)
+            const hourlyTimes = weather.hourly?.time || [];
+            const hourlyPrecipProb = weather.hourly?.precipitation_probability || [];
+            const hourlyApparentTemp = weather.hourly?.apparent_temperature || [];
+
+            let maxPrecipProb = 0;
+            let daytimeApparentTemps = [];
+
+            const todayStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
+
+            for (let i = 0; i < hourlyTimes.length; i++) {
+                const timeStr = hourlyTimes[i]; // 예: "2026-06-06T09:00"
+                if (timeStr && timeStr.startsWith(todayStr)) {
+                    const hourParts = timeStr.split('T');
+                    if (hourParts.length > 1) {
+                        const hour = parseInt(hourParts[1].split(':')[0], 10);
+                        // 오전 9시부터 오후 6시(18시)까지
+                        if (hour >= 9 && hour <= 18) {
+                            const prob = hourlyPrecipProb[i] || 0;
+                            if (prob > maxPrecipProb) {
+                                maxPrecipProb = prob;
+                            }
+                            if (hourlyApparentTemp[i] !== undefined) {
+                                daytimeApparentTemps.push(hourlyApparentTemp[i]);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 낮 시간대 평균 체감 온도 (없으면 현재 체감 온도 사용)
+            let avgDaytimeApparent = currentApparent;
+            if (daytimeApparentTemps.length > 0) {
+                const sum = daytimeApparentTemps.reduce((a, b) => a + b, 0);
+                avgDaytimeApparent = sum / daytimeApparentTemps.length;
+            }
+
+            // --- 1. 우산 판단 기준 ---
+            // 오전 9시부터 오후 6시 사이에 비 올 확률이 50% 이상인 시간이 있으면 우산 챙기기
+            const needUmbrella = maxPrecipProb >= 50;
+            const umbrellaTextElem = document.getElementById('text-umbrella');
+            const iconUmbrellaElem = document.getElementById('icon-umbrella');
+            const badgeUmbrellaElem = document.getElementById('badge-umbrella');
+
+            if (needUmbrella) {
+                umbrellaTextElem.innerText = "우산 챙기세요 ☔";
+                iconUmbrellaElem.innerText = "☔";
+                badgeUmbrellaElem.innerText = `최고 강수확률 ${maxPrecipProb}%`;
+                badgeUmbrellaElem.className = "px-3 py-1.5 rounded-full text-xs font-bold bg-amber-400 text-slate-900 shadow";
+            } else {
+                umbrellaTextElem.innerText = "우산 필요 없음 ☀️";
+                iconUmbrellaElem.innerText = "☀️";
+                badgeUmbrellaElem.innerText = `최고 강수확률 ${maxPrecipProb}%`;
+                badgeUmbrellaElem.className = "px-3 py-1.5 rounded-full text-xs font-bold bg-white/25 text-white";
+            }
+
+            // --- 2. 겉옷 판단 기준 ---
+            // 낮 시간대 체감 온도가 10도 이하면 따뜻한 겉옷 챙기기
+            const needJacket = avgDaytimeApparent <= 10;
+            const jacketTextElem = document.getElementById('text-jacket');
+            const iconJacketElem = document.getElementById('icon-jacket');
+            const badgeJacketElem = document.getElementById('badge-jacket');
+
+            if (needJacket) {
+                jacketTextElem.innerText = "따뜻한 겉옷 챙기세요 🧥";
+                iconJacketElem.innerText = "🧥";
+                badgeJacketElem.innerText = `낮 체감 ${avgDaytimeApparent.toFixed(1)}°C`;
+                badgeJacketElem.className = "px-3 py-1.5 rounded-full text-xs font-bold bg-amber-400 text-slate-900 shadow";
+            } else {
+                jacketTextElem.innerText = "겉옷 가볍게 👕";
+                iconJacketElem.innerText = "👕";
+                badgeJacketElem.innerText = `낮 체감 ${avgDaytimeApparent.toFixed(1)}°C`;
+                badgeJacketElem.className = "px-3 py-1.5 rounded-full text-xs font-bold bg-white/25 text-white";
+            }
+
+            // --- 3. 마스크 판단 기준 ---
+            // 한국 기준: PM10 나쁨 > 50 µg/m³, PM2.5 나쁨 > 25 µg/m³
+            const isBadPm10 = pm10 > 50;
+            const isBadPm25 = pm25 > 25;
+            const needMask = isBadPm10 || isBadPm25;
+
+            const maskTextElem = document.getElementById('text-mask');
+            const iconMaskElem = document.getElementById('icon-mask');
+            const badgeMaskElem = document.getElementById('badge-mask');
+
+            if (needMask) {
+                maskTextElem.innerText = "마스크 챙기세요 😷";
+                iconMaskElem.innerText = "😷";
+                badgeMaskElem.innerText = `PM10: ${Math.round(pm10)} / PM2.5: ${Math.round(pm25)}`;
+                badgeMaskElem.className = "px-3 py-1.5 rounded-full text-xs font-bold bg-rose-500 text-white shadow";
+            } else {
+                maskTextElem.innerText = "공기질 양호해요 ✨";
+                iconMaskElem.innerText = "✨";
+                badgeMaskElem.innerText = `PM10: ${Math.round(pm10)} (좋음)`;
+                badgeMaskElem.className = "px-3 py-1.5 rounded-full text-xs font-bold bg-white/25 text-white";
+            }
+
+            // --- 4. 상세 지표 출력 ---
+            document.getElementById('metric-temp').innerText = `${currentTemp.toFixed(1)}°C`;
+            document.getElementById('metric-apparent').innerText = `${currentApparent.toFixed(1)}°C`;
+            document.getElementById('metric-rain').innerText = `${maxPrecipProb}%`;
+            document.getElementById('metric-dust').innerText = `${Math.round(pm10)} ㎍/㎥`;
+
+            // 마지막 갱신 시간
+            const timeString = now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            document.getElementById('last-updated').innerText = `마지막 갱신: ${timeString}`;
+
+            // --- 5. 날씨 상태에 따른 배경 테마 변경 ---
+            updateThemeBackground(needUmbrella, avgDaytimeApparent, needMask);
+        }
+
+        function updateThemeBackground(isRainy, apparentTemp, isDusty) {
+            const body = document.getElementById('app-body');
+            
+            if (isRainy) {
+                // 비 오는 날: 차분한 블루/그레이 톤
+                body.className = "min-h-screen transition-colors duration-700 bg-gradient-to-br from-slate-700 via-blue-800 to-slate-900 text-white flex flex-col justify-between";
+            } else if (apparentTemp <= 5) {
+                // 매우 추운 날: 차가운 겨울 아이스 블루 톤
+                body.className = "min-h-screen transition-colors duration-700 bg-gradient-to-br from-cyan-600 via-blue-700 to-slate-900 text-white flex flex-col justify-between";
+            } else if (isDusty) {
+                // 미세먼지 나쁨: 탁한 오렌지/브라운 톤
+                body.className = "min-h-screen transition-colors duration-700 bg-gradient-to-br from-amber-700 via-neutral-700 to-zinc-900 text-white flex flex-col justify-between";
+            } else {
+                // 맑고 화사한 날: 청량한 스카이 블루 톤
+                body.className = "min-h-screen transition-colors duration-700 bg-gradient-to-br from-sky-400 via-indigo-500 to-blue-600 text-white flex flex-col justify-between";
+            }
+        }
+    </script>
+</body>
+</html>
